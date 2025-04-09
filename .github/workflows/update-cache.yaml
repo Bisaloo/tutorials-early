@@ -50,26 +50,12 @@ jobs:
             echo "exists=true" >> $GITHUB_OUTPUT
           fi
 
-  check_token:
-    name: "Check SANDPAPER_WORKFLOW token"
-    runs-on: ubuntu-22.04
-    needs: check_renv
-    if: ${{ needs.check_renv.outputs.needed == 'true' }}
-    outputs:
-      workflow: ${{ steps.validate.outputs.wf }}
-      repo: ${{ steps.validate.outputs.repo }}
-    steps:
-      - name: "validate token"
-        id: validate
-        uses: carpentries/actions/check-valid-credentials@main
-        with:
-          token: ${{ secrets.SANDPAPER_WORKFLOW }}
-
   update_cache:
     name: "Update Package Cache"
-    needs: check_token
-    if: ${{ needs.check_token.outputs.repo== 'true' }}
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      pull-requests: write
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       RENV_PATHS_ROOT: ~/.local/share/renv/
@@ -95,7 +81,7 @@ jobs:
         if: ${{ steps.update.outputs.n > 0 }}
         uses: carpentries/create-pull-request@main
         with:
-          token: ${{ secrets.SANDPAPER_WORKFLOW }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           delete-branch: true
           branch: "update/packages"
           commit-message: "[actions] update ${{ steps.update.outputs.n }} packages"
