@@ -65,6 +65,8 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create label
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh label create "type: package cache" --color 4A4F57
 
