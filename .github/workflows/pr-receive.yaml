@@ -67,8 +67,30 @@ jobs:
       PR: ${{ github.workspace }}/site/pr
       MD: ${{ github.workspace }}/site/built
     steps:
+      - name: "Record PR number (for PR automatic trigger)"
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          echo "NR=${{ github.event.number }}" >> $GITHUB_ENV
+
+      - name: "Pass PR number (for manual trigger)"
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          echo "NR=${{ inputs.pr_number }}" >> $GITHUB_ENV
+
+      - name: "Get branch if manual trigger"
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          echo "PR_BRANCH=$(gh pr view ${{ env.NR }} --json headRefName --jq '.headRefName')" >> $GITHUB_ENV
+
       - name: "Check Out Main Branch"
+        if: ${{ github.event_name == 'pull_request' }}
         uses: actions/checkout@v4
+
+      - name: "Checkout Out Main Branch"
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PR_BRANCH }}
 
       - name: "Check Out Staging Branch"
         uses: actions/checkout@v4
