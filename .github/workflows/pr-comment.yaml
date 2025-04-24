@@ -3,6 +3,10 @@ name: "Bot: Comment on the Pull Request"
 # read-write repo token
 # access to secrets
 on:
+  workflow_dispatch:
+    inputs:
+      workflow_id:
+        required: true
   workflow_run:
     workflows: ["Receive Pull Request"]
     types:
@@ -21,8 +25,6 @@ jobs:
   test-pr:
     name: "Test if pull request is valid"
     runs-on: ubuntu-22.04
-    if: >
-      github.event.workflow_run.conclusion == 'success'
     outputs:
       is_valid: ${{ steps.check-pr.outputs.VALID }}
       payload: ${{ steps.check-pr.outputs.payload }}
@@ -31,13 +33,22 @@ jobs:
     steps:
       - name: 'Download PR artifact'
         id: dl
+        if: ${{ github.event_name == 'workflow_run' }}
         uses: carpentries/actions/download-workflow-artifact@main
         with:
           run: ${{ github.event.workflow_run.id }}
           name: 'pr'
 
+      - name: 'Download PR artifact (manually triggered workflow)'
+        id: dl-manual
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: carpentries/actions/download-workflow-artifact@main
+        with:
+          run: ${{ inputs.workflow_id }}
+          name: 'pr'
+
       - name: "Get PR Number"
-        if: ${{ steps.dl.outputs.success == 'true' }}
+        if: ${{ steps.dl.outputs.success == 'true' }} || ${{ steps.dl-manual.outputs.success == 'true'}}
         id: get-pr
         run: |
           unzip pr.zip
@@ -46,7 +57,7 @@ jobs:
 
       - name: "Fail if PR number was not present"
         id: bad-pr
-        if: ${{ steps.dl.outputs.success != 'true' }}
+        if: ${{ steps.dl.outputs.success != 'true' }} || ${{ steps.dl-manual.outputs.success != 'true'}}
         run: |
           echo '::error::A pull request number was not recorded. The pull request that triggered this workflow is likely malicious.'
           exit 1
@@ -89,16 +100,25 @@ jobs:
 
       - name: 'Download built markdown'
         id: dl
+        if: ${{ github.event_name == 'workflow_run' }}
         uses: carpentries/actions/download-workflow-artifact@main
         with:
           run: ${{ github.event.workflow_run.id }}
           name: 'built'
 
-      - if: ${{ steps.dl.outputs.success == 'true' }}
+      - name: 'Download built markdown (manual trigger)'
+        id: dl-manual
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: carpentries/actions/download-workflow-artifact@main
+        with:
+          run: ${{ inputs.workflow_id }}
+          name: 'built'
+
+      - if: ${{ steps.dl.outputs.success == 'true' }} || ${{ steps.dl-manual.outputs.success == 'true'}}
         run: unzip built.zip
 
       - name: "Create orphan and push"
-        if: ${{ steps.dl.outputs.success == 'true' }}
+        if: ${{ steps.dl.outputs.success == 'true' }} || ${{ steps.dl-manual.outputs.success == 'true'}}
         run: |
           cd built/
           git config --local user.email "actions@github.com"
@@ -128,17 +148,26 @@ jobs:
     steps:
       - name: 'Download comment artifact'
         id: dl
+        if: ${{ github.event_name == 'workflow_run' }}
         uses: carpentries/actions/download-workflow-artifact@main
         with:
           run: ${{ github.event.workflow_run.id }}
           name: 'diff'
 
-      - if: ${{ steps.dl.outputs.success == 'true' }}
+      - name: 'Download comment artifact'
+        id: dl-manual
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: carpentries/actions/download-workflow-artifact@main
+        with:
+          run: ${{ inputs.workflow_id }}
+          name: 'diff'
+
+      - if: ${{ steps.dl.outputs.success == 'true' }} || ${{ steps.dl-manual.outputs.success == 'true'}}
         run: unzip ${{ github.workspace }}/diff.zip
 
       - name: "Comment on PR"
         id: comment-diff
-        if: ${{ steps.dl.outputs.success == 'true' }}
+        if: ${{ steps.dl.outputs.success == 'true' }} || ${{ steps.dl-manual.outputs.success == 'true'}}
         uses: carpentries/actions/comment-diff@main
         with:
           pr: ${{ env.NR }}
@@ -152,16 +181,25 @@ jobs:
     runs-on: ubuntu-22.04
     if: ${{ always() && needs.test-pr.outputs.is_valid == 'false' }}
     env:
-      NR: ${{ github.event.workflow_run.pull_requests[0].number }}
+      NR: ${{ needs.test-pr.outputs.number }}
       body: ${{ needs.test-pr.outputs.msg }}
     permissions:
       pull-requests: write
     steps:
       - name: 'Check for spoofing'
         id: dl
+        if: ${{ github.event_name == 'workflow_run' }}
         uses: carpentries/actions/download-workflow-artifact@main
         with:
           run: ${{ github.event.workflow_run.id }}
+          name: 'built'
+
+      - name: 'Check for spoofing'
+        id: dl
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: carpentries/actions/download-workflow-artifact@main
+        with:
+          run: ${{ inputs.workflow_id }}
           name: 'built'
 
       - name: 'Alert if spoofed'
