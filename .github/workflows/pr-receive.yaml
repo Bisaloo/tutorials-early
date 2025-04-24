@@ -82,7 +82,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "PR_BRANCH=$(gh pr view ${{ env.NR }} --json headRefName --jq '.headRefName')" >> $GITHUB_ENV
+          echo "PR_BRANCH=$(gh -R ${{ github.repository }} pr view ${{ env.NR }} --json headRefName --jq '.headRefName')" >> $GITHUB_ENV
 
       - name: "Check Out Main Branch"
         if: ${{ github.event_name == 'pull_request' }}
