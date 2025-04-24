@@ -28,10 +28,10 @@ jobs:
           echo ${{ github.event.number }} > ${{ github.workspace }}/NR # 2022-03-02: artifact name fixed to be NR
           echo "NR=${{ github.event.number }}" >> $GITHUB_ENV
       - name: "Pass PR number (for manual trigger)"
-        if: ${{ github.event_name == 'workflow_dispatch '}}
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
           echo ${{ inputs.pr_number }} > ${{ github.workspace }}/NR
-          echo "NR=${{ inputs.pr_number }}"" >> $GITHUB_ENV
+          echo "NR=${{ inputs.pr_number }}" >> $GITHUB_ENV
       - name: "Upload PR number"
         id: upload
         if: ${{ always() }}
