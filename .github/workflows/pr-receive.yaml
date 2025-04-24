@@ -23,17 +23,15 @@ jobs:
       is_valid: ${{ steps.check-pr.outputs.VALID }}
     steps:
       - name: "Record PR number (for PR automatic trigger)"
-        id: record
         if: ${{ github.event_name == 'pull_request' }}
         run: |
           echo ${{ github.event.number }} > ${{ github.workspace }}/NR # 2022-03-02: artifact name fixed to be NR
-          echo "NR=${{ github.event.number }}" >> $GITHUB_OUTPUT
+          echo "NR=${{ github.event.number }}" >> $GITHUB_ENV
       - name: "Pass PR number (for manual trigger)"
-        id: record
         if: ${{ github.event_name == 'workflow_dispatch '}}
         run: |
           echo ${{ inputs.pr_number }} > ${{ github.workspace }}/NR
-          echo "NR=${{ inputs.pr_number }}"" >> $GITHUB_OUTPUT
+          echo "NR=${{ inputs.pr_number }}"" >> $GITHUB_ENV
       - name: "Upload PR number"
         id: upload
         if: ${{ always() }}
@@ -54,7 +52,7 @@ jobs:
         id: check-pr
         uses: carpentries/actions/check-valid-pr@main
         with:
-          pr: ${{ steps.id.outputs.NR }}
+          pr: $NR
           invalid: ${{ fromJSON(steps.hash.outputs.json)[github.repository] }}
 
   build-md-source:
