@@ -79,6 +79,8 @@ jobs:
 
       - name: "Get branch if manual trigger"
         if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "PR_BRANCH=$(gh pr view ${{ env.NR }} --json headRefName --jq '.headRefName')" >> $GITHUB_ENV
 
